@@ -38,6 +38,11 @@ pub enum TokenType {
     RBrace,
 
     // Keywods
+    True,
+    False,
+    If,
+    Else,
+    Return,
     Function,
     Let,
 }
@@ -45,6 +50,11 @@ pub enum TokenType {
 impl TokenType {
     pub fn from_identifier(identifier: &str) -> Self {
         match identifier {
+            "true" => TokenType::True,
+            "false" => TokenType::False,
+            "if" => TokenType::If,
+            "else" => TokenType::Else,
+            "return" => TokenType::Return,
             "fn" => TokenType::Function,
             "let" => TokenType::Let,
             _ => TokenType::Ident,

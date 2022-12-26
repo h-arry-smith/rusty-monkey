@@ -154,7 +154,9 @@ mod tests {
             x + y;
         };
         
-        let result = add(five, ten);"#;
+        let result = add(five, ten);
+        
+        if else true false return;"#;
 
         let expected = [
             (TokenType::Let, "let"),
@@ -192,6 +194,12 @@ mod tests {
             (TokenType::Comma, ","),
             (TokenType::Ident, "ten"),
             (TokenType::RParen, ")"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::If, "if"),
+            (TokenType::Else, "else"),
+            (TokenType::True, "true"),
+            (TokenType::False, "false"),
+            (TokenType::Return, "return"),
             (TokenType::Semicolon, ";"),
             (TokenType::EOF, ""),
         ];
