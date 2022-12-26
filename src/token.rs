@@ -35,3 +35,13 @@ pub enum TokenType {
     Function,
     Let,
 }
+
+impl TokenType {
+    pub fn from_identifier(identifier: &str) -> Self {
+        match identifier {
+            "fn" => TokenType::Function,
+            "let" => TokenType::Let,
+            _ => TokenType::Ident,
+        }
+    }
+}
