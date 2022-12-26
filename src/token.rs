@@ -29,6 +29,10 @@ pub enum TokenType {
     LessThan,
     GreaterThan,
 
+    // Double Operators
+    Eq,    // ==
+    NotEq, // !=
+
     // Delimiters
     Comma,
     Semicolon,

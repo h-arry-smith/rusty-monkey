@@ -32,6 +32,10 @@ impl<'src> Lexer<'src> {
         self.read_position += 1;
     }
 
+    fn peek_char(&self) -> u8 {
+        self.input[self.read_position]
+    }
+
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
@@ -44,8 +48,22 @@ impl<'src> Lexer<'src> {
             b'>' => new_token(TokenType::GreaterThan, ">"),
             b',' => new_token(TokenType::Comma, ","),
             b';' => new_token(TokenType::Semicolon, ";"),
-            b'=' => new_token(TokenType::Assign, "="),
-            b'!' => new_token(TokenType::Bang, "!"),
+            b'=' => {
+                if self.peek_char() == b'=' {
+                    self.read_char();
+                    new_token(TokenType::Eq, "==")
+                } else {
+                    new_token(TokenType::Assign, "=")
+                }
+            }
+            b'!' => {
+                if self.peek_char() == b'=' {
+                    self.read_char();
+                    new_token(TokenType::NotEq, "!=")
+                } else {
+                    new_token(TokenType::Bang, "!")
+                }
+            }
             b'+' => new_token(TokenType::Plus, "+"),
             b'-' => new_token(TokenType::Minus, "-"),
             b'*' => new_token(TokenType::Asterisk, "*"),
@@ -134,6 +152,21 @@ mod tests {
             (TokenType::Comma, ","),
             (TokenType::Semicolon, ";"),
         ];
+
+        let mut lexer = Lexer::new(input);
+
+        for (ttype, literal) in expected {
+            let token = lexer.next_token();
+
+            assert_eq!(token.ttype, ttype);
+            assert_eq!(token.literal, literal);
+        }
+    }
+
+    #[test]
+    fn lookahead() {
+        let input = "== !=";
+        let expected = [(TokenType::Eq, "=="), (TokenType::NotEq, "!=")];
 
         let mut lexer = Lexer::new(input);
 
