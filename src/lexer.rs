@@ -36,14 +36,20 @@ impl<'src> Lexer<'src> {
         self.skip_whitespace();
 
         let token = match self.ch {
-            b'=' => new_token(TokenType::Assign, "="),
-            b';' => new_token(TokenType::Semicolon, ";"),
             b'(' => new_token(TokenType::LParen, "("),
             b')' => new_token(TokenType::RParen, ")"),
-            b',' => new_token(TokenType::Comma, ","),
-            b'+' => new_token(TokenType::Plus, "+"),
             b'{' => new_token(TokenType::LBrace, "{"),
             b'}' => new_token(TokenType::RBrace, "}"),
+            b'<' => new_token(TokenType::LessThan, "<"),
+            b'>' => new_token(TokenType::GreaterThan, ">"),
+            b',' => new_token(TokenType::Comma, ","),
+            b';' => new_token(TokenType::Semicolon, ";"),
+            b'=' => new_token(TokenType::Assign, "="),
+            b'!' => new_token(TokenType::Bang, "!"),
+            b'+' => new_token(TokenType::Plus, "+"),
+            b'-' => new_token(TokenType::Minus, "-"),
+            b'*' => new_token(TokenType::Asterisk, "*"),
+            b'/' => new_token(TokenType::Slash, "/"),
             0 => new_token(TokenType::EOF, ""),
             _ => {
                 if is_letter(&self.ch) {
@@ -111,10 +117,16 @@ mod tests {
 
     #[test]
     fn test_next_token() {
-        let input = "=+(){},;";
+        let input = "=+-/*!<>(){},;";
         let expected = [
             (TokenType::Assign, "="),
             (TokenType::Plus, "+"),
+            (TokenType::Minus, "-"),
+            (TokenType::Slash, "/"),
+            (TokenType::Asterisk, "*"),
+            (TokenType::Bang, "!"),
+            (TokenType::LessThan, "<"),
+            (TokenType::GreaterThan, ">"),
             (TokenType::LParen, "("),
             (TokenType::RParen, ")"),
             (TokenType::LBrace, "{"),
