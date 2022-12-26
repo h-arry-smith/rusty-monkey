@@ -1,3 +1,6 @@
+use rusty_monkey::repl;
+
 fn main() {
-    println!("Hello, world!");
+    println!("rusty-moneky REPL");
+    repl::start();
 }

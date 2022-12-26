@@ -1,7 +1,7 @@
 use crate::token::{Token, TokenType};
 
 #[derive(Debug)]
-struct Lexer<'src> {
+pub struct Lexer<'src> {
     input: &'src [u8],
     position: usize,
     read_position: usize,
@@ -125,6 +125,20 @@ fn new_token(ttype: TokenType, literal: &str) -> Token {
 
 fn is_letter(ch: &u8) -> bool {
     ch.is_ascii_alphabetic() || *ch == b'_'
+}
+
+impl<'src> Iterator for Lexer<'src> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.next_token();
+
+        if token.ttype == TokenType::EOF {
+            None
+        } else {
+            Some(token)
+        }
+    }
 }
 
 #[cfg(test)]
