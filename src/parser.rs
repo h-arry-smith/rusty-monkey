@@ -63,6 +63,7 @@ impl<'src> Parser<'src> {
         if let Some(token) = &self.current_token {
             match token.ttype {
                 TokenType::Let => self.parse_let_statement(),
+                TokenType::Return => self.parse_return_statement(),
                 _ => Err(ParserError(format!("Unexepcted token: {:?}", token.ttype))),
             }
         } else {
@@ -83,6 +84,17 @@ impl<'src> Parser<'src> {
         }
 
         Ok(Stmt::Let(token.unwrap(), name, Expr::Temp))
+    }
+
+    fn parse_return_statement(&mut self) -> Result<Stmt, ParserError> {
+        self.next_token();
+
+        // TODO: We're skipping the expressions until we encounter a semicolon
+        while !self.current_token_is(&TokenType::Semicolon) {
+            self.next_token();
+        }
+
+        Ok(Stmt::Return(Expr::Temp))
     }
 
     fn current_token_is(&self, ttype: &TokenType) -> bool {
@@ -140,6 +152,17 @@ mod tests {
         };
     }
 
+    macro_rules! parse_program {
+        ($input:ident) => {{
+            let lexer = $crate::lexer::Lexer::new($input);
+            let mut parser = $crate::parser::Parser::new(lexer);
+
+            let program = parser.parse_program();
+            check_parser_errors(&parser);
+            program
+        }};
+    }
+
     #[test]
     fn let_stmt() {
         let input = r#"
@@ -148,11 +171,7 @@ mod tests {
         let foobar = 838383;
         "#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-
-        let program = parser.parse_program();
-        check_parser_errors(&parser);
+        let program = parse_program!(input);
 
         assert_eq!(program.statements.len(), 3);
 
@@ -163,6 +182,24 @@ mod tests {
                     assert_let_statement!(token, Let, identifier, expected_identifiers[i]);
                 }
                 _ => panic!("expected a let statement"),
+            }
+        }
+    }
+
+    #[test]
+    fn return_stmt() {
+        let input = r#"
+        return 5;
+        return 10;
+        return 993322;
+        "#;
+
+        let program = parse_program!(input);
+
+        for statement in program.statements.iter() {
+            match statement {
+                Stmt::Return(_) => {}
+                _ => panic!("expected a return statement"),
             }
         }
     }

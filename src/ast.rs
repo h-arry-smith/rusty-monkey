@@ -6,6 +6,7 @@ pub struct Identifier(pub String);
 #[derive(Debug)]
 pub enum Stmt {
     Let(Token, Identifier, Expr),
+    Return(Expr),
 }
 
 #[derive(Debug)]
