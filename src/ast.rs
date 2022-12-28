@@ -12,7 +12,7 @@ pub enum Stmt {
 #[derive(Debug)]
 pub enum Expr {
     Identifier(String),
-    IntegerLiteral(i32),
+    IntegerLiteral(i64),
     Prefix(String, Box<Expr>),
     Infix(Box<Expr>, String, Box<Expr>),
     Boolean(bool),

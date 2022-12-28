@@ -196,7 +196,7 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_integer_literal(&mut self) -> Result<Expr, ParserError> {
-        match self.current_token.literal.parse::<i32>() {
+        match self.current_token.literal.parse::<i64>() {
             Ok(integer) => Ok(Expr::IntegerLiteral(integer)),
             Err(_) => Err(ParserError(format!(
                 "could not parse {:?} as integer",
