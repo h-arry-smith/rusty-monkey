@@ -146,6 +146,8 @@ impl<'src> Parser<'src> {
             TokenType::Int => self.parse_integer_literal(),
             TokenType::Bang => self.parse_prefix_expr(),
             TokenType::Minus => self.parse_prefix_expr(),
+            TokenType::True => self.parse_boolean(),
+            TokenType::False => self.parse_boolean(),
             _ => Err(ParserError(format!(
                 "no prefix function for expression: {:?}",
                 self.current_token
@@ -196,6 +198,10 @@ impl<'src> Parser<'src> {
         let right = self.parse_expression(precedence)?;
 
         Ok(Expr::Infix(Box::new(left), operator, Box::new(right)))
+    }
+
+    fn parse_boolean(&mut self) -> Result<Expr, ParserError> {
+        Ok(Expr::Boolean(self.current_token_is(&TokenType::True)))
     }
 
     fn current_token_is(&self, ttype: &TokenType) -> bool {
