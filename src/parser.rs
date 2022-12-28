@@ -117,16 +117,25 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr, ParserError> {
-        let expr = match self.current_token.ttype {
+        match self.current_token.ttype {
             TokenType::Ident => self.parse_ident_expr(),
-            _ => return Err(ParserError("no prefix function for expression".to_string())),
-        };
-
-        Ok(expr)
+            TokenType::Int => self.parse_integer_literal(),
+            _ => Err(ParserError("no prefix function for expression".to_string())),
+        }
     }
 
-    fn parse_ident_expr(&mut self) -> Expr {
-        Expr::Identifier(self.current_token.literal.clone())
+    fn parse_ident_expr(&mut self) -> Result<Expr, ParserError> {
+        Ok(Expr::Identifier(self.current_token.literal.clone()))
+    }
+
+    fn parse_integer_literal(&mut self) -> Result<Expr, ParserError> {
+        match self.current_token.literal.parse::<i32>() {
+            Ok(integer) => Ok(Expr::IntegerLiteral(integer)),
+            Err(_) => Err(ParserError(format!(
+                "could not parse {:?} as integer",
+                self.current_token
+            ))),
+        }
     }
 
     fn current_token_is(&self, ttype: &TokenType) -> bool {
@@ -240,6 +249,25 @@ mod tests {
         match stmt {
             Stmt::Expr(expr) => match expr {
                 Expr::Identifier(ident) => assert_eq!(ident, "foobar"),
+                _ => panic!("not an identifier expression"),
+            },
+            _ => panic!("not an expression"),
+        }
+    }
+
+    #[test]
+    fn int_literal_expr() {
+        let input = "5;";
+
+        let program = parse_program!(input);
+
+        let stmt = program
+            .statements
+            .first()
+            .expect("should have on statement");
+        match stmt {
+            Stmt::Expr(expr) => match expr {
+                Expr::IntegerLiteral(integer) => assert_eq!(*integer, 5),
                 _ => panic!("not an identifier expression"),
             },
             _ => panic!("not an expression"),

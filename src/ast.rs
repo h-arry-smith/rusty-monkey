@@ -14,6 +14,7 @@ pub enum Stmt {
 pub enum Expr {
     Temp,
     Identifier(String),
+    IntegerLiteral(i32),
 }
 
 #[derive(Debug)]
