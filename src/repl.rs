@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{lexer::Lexer, parser::Parser};
+use crate::{evaluator, lexer::Lexer, parser::Parser};
 
 const PROMPT: &str = ">> ";
 
@@ -19,11 +19,15 @@ pub fn start() {
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
 
-        println!("{:#?}", program);
-
-        for error in parser.errors() {
-            eprintln!("error: {}", error);
+        if !parser.errors().is_empty() {
+            for error in parser.errors() {
+                eprintln!("error: {}", error);
+            }
+            continue;
         }
+
+        let evaluated = evaluator::eval_program(program);
+        println!("{}", evaluated);
 
         input.clear();
     }
