@@ -95,29 +95,31 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_let_statement(&mut self) -> Result<Stmt, ParserError> {
-        let token = self.current_token.clone();
         self.expect_peek(TokenType::Ident)?;
         let name = Identifier(self.current_token.literal.clone());
 
         self.expect_peek(TokenType::Assign)?;
+        self.next_token();
 
-        // TODO: We're skipping the expressions until we encounter a semicolon
-        while !self.current_token_is(&TokenType::Semicolon) {
+        let value = self.parse_expression(Precedence::Lowest)?;
+
+        if self.peek_token_is(&TokenType::Semicolon) {
             self.next_token();
         }
 
-        Ok(Stmt::Let(token, name, Expr::Temp))
+        Ok(Stmt::Let(name, value))
     }
 
     fn parse_return_statement(&mut self) -> Result<Stmt, ParserError> {
         self.next_token();
 
-        // TODO: We're skipping the expressions until we encounter a semicolon
-        while !self.current_token_is(&TokenType::Semicolon) {
+        let value = self.parse_expression(Precedence::Lowest)?;
+
+        if self.peek_token_is(&TokenType::Semicolon) {
             self.next_token();
         }
 
-        Ok(Stmt::Return(Expr::Temp))
+        Ok(Stmt::Return(value))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Stmt, ParserError> {
@@ -371,8 +373,7 @@ mod tests {
     use crate::{ast::*, parser::Parser};
 
     macro_rules! assert_let_statement {
-        ($token:ident, $ttype:ident, $identifier:ident, $expected:expr) => {
-            assert_eq!($token.ttype, $crate::token::TokenType::$ttype);
+        ($identifier:ident, $expected:expr) => {
             assert_eq!($identifier.0, $expected);
         };
     }
@@ -412,8 +413,8 @@ mod tests {
         let expected_identifiers = ["x", "y", "foobar"];
         for (i, statement) in program.statements.iter().enumerate() {
             match statement {
-                Stmt::Let(token, identifier, _) => {
-                    assert_let_statement!(token, Let, identifier, expected_identifiers[i]);
+                Stmt::Let(identifier, _) => {
+                    assert_let_statement!(identifier, expected_identifiers[i]);
                 }
                 _ => panic!("expected a let statement"),
             }
