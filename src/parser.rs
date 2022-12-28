@@ -65,7 +65,7 @@ impl<'src> Parser<'src> {
     }
 
     // TODO: Propogate parser error
-    fn parse_program(&mut self) -> Program {
+    pub fn parse_program(&mut self) -> Program {
         let mut program = Program::new();
 
         loop {
@@ -146,7 +146,10 @@ impl<'src> Parser<'src> {
             TokenType::Int => self.parse_integer_literal(),
             TokenType::Bang => self.parse_prefix_expr(),
             TokenType::Minus => self.parse_prefix_expr(),
-            _ => Err(ParserError("no prefix function for expression".to_string())),
+            _ => Err(ParserError(format!(
+                "no prefix function for expression: {:?}",
+                self.current_token
+            ))),
         }
     }
 
