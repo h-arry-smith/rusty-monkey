@@ -7,11 +7,13 @@ pub struct Identifier(pub String);
 pub enum Stmt {
     Let(Token, Identifier, Expr),
     Return(Expr),
+    Expr(Expr),
 }
 
 #[derive(Debug)]
 pub enum Expr {
     Temp,
+    Identifier(String),
 }
 
 #[derive(Debug)]
