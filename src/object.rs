@@ -1,5 +1,10 @@
 use std::fmt::Display;
 
+pub const TRUE: Object = Object::Boolean(true);
+pub const FALSE: Object = Object::Boolean(false);
+pub const NULL: Object = Object::Null;
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Object {
     Integer(i64),
     Boolean(bool),

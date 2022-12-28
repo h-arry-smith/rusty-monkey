@@ -1,6 +1,6 @@
 use rusty_monkey::repl;
 
 fn main() {
-    println!("rusty-moneky REPL");
+    println!("rusty-monkey REPL");
     repl::start();
 }
