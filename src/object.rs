@@ -9,6 +9,7 @@ pub enum Object {
     Integer(i64),
     Boolean(bool),
     Null,
+    Return(Box<Object>),
 }
 
 impl Display for Object {
@@ -17,6 +18,7 @@ impl Display for Object {
             Object::Integer(int) => write!(f, "{}", int),
             Object::Boolean(boolean) => write!(f, "{}", boolean),
             Object::Null => write!(f, "null"),
+            Object::Return(object) => write!(f, "{}", object),
         }
     }
 }

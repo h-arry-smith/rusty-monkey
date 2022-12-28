@@ -4,26 +4,40 @@ use crate::{
 };
 
 pub fn eval_program(program: Program) -> Object {
-    eval_statements(program.statements)
-}
-
-fn eval_statements(statements: Vec<Stmt>) -> Object {
     let mut result = NULL;
 
-    for statement in statements {
+    for statement in program.statements {
         result = eval_statement(statement);
+
+        if let Object::Return(value) = result { return *value; }
     }
 
     result
 }
-
 fn eval_statement(statement: Stmt) -> Object {
     match statement {
         Stmt::Let(_, _) => todo!(),
-        Stmt::Return(_) => todo!(),
+        Stmt::Return(expr) => {
+            let value = eval_expression(expr);
+            Object::Return(Box::new(value))
+        },
         Stmt::Expr(expr) => eval_expression(expr),
-        Stmt::Block(statements) => eval_statements(statements),
+        Stmt::Block(_) => eval_block_statement(statement),
     }
+}
+
+fn eval_block_statement(block: Stmt) -> Object {
+    let mut result = NULL;
+
+    if let Stmt::Block(statements) = block {
+        for statement in statements {
+            result = eval_statement(statement);
+
+            if let Object::Return(_) = result { return result; }
+        }
+    }
+
+    result
 }
 
 fn eval_expression(expr: Expr) -> Object {
