@@ -22,7 +22,7 @@ fn eval_statement(statement: Stmt) -> Object {
         Stmt::Let(_, _) => todo!(),
         Stmt::Return(_) => todo!(),
         Stmt::Expr(expr) => eval_expression(expr),
-        Stmt::Block(_) => todo!(),
+        Stmt::Block(statements) => eval_statements(statements),
     }
 }
 
@@ -40,7 +40,7 @@ fn eval_expression(expr: Expr) -> Object {
             eval_infix_expression(operator, left, right)
         }
         Expr::Boolean(boolean) => boolean_object(boolean),
-        Expr::If(_, _, _) => todo!(),
+        Expr::If(condition, consequence, alternative) => eval_if_expression(*condition, *consequence, alternative),
         Expr::Functionliteral(_, _) => todo!(),
         Expr::Call(_, _) => todo!(),
     }
@@ -100,10 +100,30 @@ fn eval_integer_infix_expression(operator: String, left: i64, right: i64) -> Obj
     }
 }
 
+fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Box<Stmt>>) -> Object {
+    let condition = eval_expression(condition);
+
+    if is_truthy(condition) {
+        eval_statement(consequence)
+    } else if let Some(alt) = alternative {
+        eval_statement(*alt)
+    } else {
+        NULL
+    }
+}
+
 fn boolean_object(boolean: bool) -> Object {
     if boolean {
         TRUE
     } else {
         FALSE
+    }
+}
+
+fn is_truthy(object: Object) -> bool {
+    match object {
+        Object::Boolean(boolean) => boolean,
+        Object::Null => false,
+        _ => true
     }
 }
