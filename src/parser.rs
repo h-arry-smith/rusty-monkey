@@ -148,6 +148,7 @@ impl<'src> Parser<'src> {
             TokenType::Minus => self.parse_prefix_expr(),
             TokenType::True => self.parse_boolean(),
             TokenType::False => self.parse_boolean(),
+            TokenType::LParen => self.parse_grouped_expression(),
             _ => Err(ParserError(format!(
                 "no prefix function for expression: {:?}",
                 self.current_token
@@ -202,6 +203,15 @@ impl<'src> Parser<'src> {
 
     fn parse_boolean(&mut self) -> Result<Expr, ParserError> {
         Ok(Expr::Boolean(self.current_token_is(&TokenType::True)))
+    }
+
+    fn parse_grouped_expression(&mut self) -> Result<Expr, ParserError> {
+        self.next_token();
+
+        let expr = self.parse_expression(Precedence::Lowest);
+        self.expect_peek(TokenType::RParen)?;
+
+        expr
     }
 
     fn current_token_is(&self, ttype: &TokenType) -> bool {
