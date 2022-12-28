@@ -16,6 +16,7 @@ pub enum Expr {
     Identifier(String),
     IntegerLiteral(i32),
     Prefix(String, Box<Expr>),
+    Infix(Box<Expr>, String, Box<Expr>),
 }
 
 #[derive(Debug)]
