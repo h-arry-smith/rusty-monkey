@@ -120,6 +120,8 @@ impl<'src> Parser<'src> {
         match self.current_token.ttype {
             TokenType::Ident => self.parse_ident_expr(),
             TokenType::Int => self.parse_integer_literal(),
+            TokenType::Bang => self.parse_prefix_expr(),
+            TokenType::Minus => self.parse_prefix_expr(),
             _ => Err(ParserError("no prefix function for expression".to_string())),
         }
     }
@@ -136,6 +138,14 @@ impl<'src> Parser<'src> {
                 self.current_token
             ))),
         }
+    }
+
+    fn parse_prefix_expr(&mut self) -> Result<Expr, ParserError> {
+        let operator = self.current_token.literal.clone();
+        self.next_token();
+        let right = self.parse_expression(Precedence::Prefix)?;
+
+        Ok(Expr::Prefix(operator, Box::new(right)))
     }
 
     fn current_token_is(&self, ttype: &TokenType) -> bool {
@@ -182,6 +192,15 @@ mod tests {
             assert_eq!($token.ttype, $crate::token::TokenType::$ttype);
             assert_eq!($identifier.0, $expected);
         };
+    }
+
+    macro_rules! assert_int_literal {
+        ($expr:expr, $expected:expr) => {{
+            match **$expr {
+                $crate::ast::Expr::IntegerLiteral(int) => assert_eq!(int, $expected),
+                _ => panic!("not an int literal"),
+            }
+        }};
     }
 
     macro_rules! parse_program {
@@ -271,6 +290,28 @@ mod tests {
                 _ => panic!("not an identifier expression"),
             },
             _ => panic!("not an expression"),
+        }
+    }
+
+    #[test]
+    fn prefix_operators() {
+        let tests = [("!5;", "!", 5), ("-15;", "-", 15)];
+
+        for (input, operator, literal) in tests {
+            let program = parse_program!(input);
+
+            let stmt = program.statements.first().expect("should have a statement");
+
+            match stmt {
+                Stmt::Expr(expr) => match expr {
+                    Expr::Prefix(op, right) => {
+                        assert_eq!(op, operator);
+                        assert_int_literal!(right, literal)
+                    }
+                    _ => panic!("not a prefix expression"),
+                },
+                _ => panic!("not an expression"),
+            }
         }
     }
 
