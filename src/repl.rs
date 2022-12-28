@@ -21,13 +21,16 @@ pub fn start() {
 
         if !parser.errors().is_empty() {
             for error in parser.errors() {
-                eprintln!("error: {}", error);
+                eprintln!("parser error: {}", error);
             }
+            input.clear();
             continue;
         }
 
-        let evaluated = evaluator::eval_program(program);
-        println!("{}", evaluated);
+        match evaluator::eval_program(program) {
+            Ok(result) => println!("{}", result),
+            Err(err) => println!("error: {}", err),
+        };
 
         input.clear();
     }

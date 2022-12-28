@@ -1,107 +1,117 @@
+use std::fmt::Display;
+
 use crate::{
     ast::*,
     object::{Object, FALSE, NULL, TRUE},
 };
 
-pub fn eval_program(program: Program) -> Object {
+pub type EvaluationResult = Result<Object, EvaluationError>;
+pub struct EvaluationError(String);
+impl Display for EvaluationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+pub fn eval_program(program: Program) -> EvaluationResult {
     let mut result = NULL;
 
     for statement in program.statements {
-        result = eval_statement(statement);
+        result = eval_statement(statement)?;
 
-        if let Object::Return(value) = result { return *value; }
+        if let Object::Return(value) = result { return Ok(*value); }
     }
 
-    result
+    Ok(result)
 }
-fn eval_statement(statement: Stmt) -> Object {
+fn eval_statement(statement: Stmt) -> EvaluationResult {
     match statement {
         Stmt::Let(_, _) => todo!(),
         Stmt::Return(expr) => {
-            let value = eval_expression(expr);
-            Object::Return(Box::new(value))
+            let value = eval_expression(expr)?;
+            Ok(Object::Return(Box::new(value)))
         },
         Stmt::Expr(expr) => eval_expression(expr),
         Stmt::Block(_) => eval_block_statement(statement),
     }
 }
 
-fn eval_block_statement(block: Stmt) -> Object {
+fn eval_block_statement(block: Stmt) -> EvaluationResult {
     let mut result = NULL;
 
     if let Stmt::Block(statements) = block {
         for statement in statements {
-            result = eval_statement(statement);
+            result = eval_statement(statement)?;
 
-            if let Object::Return(_) = result { return result; }
+            if let Object::Return(_) = result { return Ok(result); }
         }
     }
 
-    result
+    Ok(result)
 }
 
-fn eval_expression(expr: Expr) -> Object {
+fn eval_expression(expr: Expr) -> EvaluationResult {
     match expr {
         Expr::Identifier(_) => todo!(),
-        Expr::IntegerLiteral(integer) => Object::Integer(integer),
+        Expr::IntegerLiteral(integer) => Ok(Object::Integer(integer)),
         Expr::Prefix(operator, right) => {
-            let right = eval_expression(*right);
+            let right = eval_expression(*right)?;
             eval_prefix_expression(operator, right)
         }
         Expr::Infix(left, operator, right) => {
-            let left = eval_expression(*left);
-            let right = eval_expression(*right);
+            let left = eval_expression(*left)?;
+            let right = eval_expression(*right)?;
             eval_infix_expression(operator, left, right)
         }
-        Expr::Boolean(boolean) => boolean_object(boolean),
+        Expr::Boolean(boolean) => Ok(boolean_object(boolean)),
         Expr::If(condition, consequence, alternative) => eval_if_expression(*condition, *consequence, alternative),
         Expr::Functionliteral(_, _) => todo!(),
         Expr::Call(_, _) => todo!(),
     }
 }
 
-fn eval_prefix_expression(operator: String, right: Object) -> Object {
+fn eval_prefix_expression(operator: String, right: Object) -> EvaluationResult {
     match operator.as_str() {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right),
-        _ => NULL,
+        _ => Err(EvaluationError(format!("unknown operator: {} {}", operator, right))),
     }
 }
 
-fn eval_bang_operator_expression(right: Object) -> Object {
+fn eval_bang_operator_expression(right: Object) -> EvaluationResult {
     match right {
-        TRUE => FALSE,
-        FALSE => TRUE,
-        NULL => TRUE,
-        _ => FALSE,
+        TRUE => Ok(FALSE),
+        FALSE => Ok(TRUE),
+        NULL => Ok(TRUE),
+        _ => Ok(FALSE),
     }
 }
 
-fn eval_minus_prefix_operator_expression(right: Object) -> Object {
+fn eval_minus_prefix_operator_expression(right: Object) -> EvaluationResult {
     match right {
-        Object::Integer(integer) => Object::Integer(-integer),
-        _ => NULL,
+        Object::Integer(integer) => Ok(Object::Integer(-integer)),
+        _ => Err(EvaluationError(format!("unknown operator: -{}", right))),
     }
 }
 
-fn eval_infix_expression(operator: String, left: Object, right: Object) -> Object {
+fn eval_infix_expression(operator: String, left: Object, right: Object) -> EvaluationResult {
     match left {
         Object::Integer(left) => match right {
             Object::Integer(right) => eval_integer_infix_expression(operator, left, right),
-            _ => NULL
+            _ => Err(EvaluationError(format!("type mismatch {} {} {}", left, operator, right)))
         }
         _ => {
             match operator.as_str() {
-                "==" => boolean_object(left == right),
-                "!=" => boolean_object(left != right),
-                _ => NULL 
+                "==" => Ok(boolean_object(left == right)),
+                "!=" => Ok(boolean_object(left != right)),
+                _ => Err(EvaluationError(format!("unknown operator: {} {} {}", left, operator, right)))
             }
         },
     }
 }
 
-fn eval_integer_infix_expression(operator: String, left: i64, right: i64) -> Object {
-    match operator.as_str() {
+fn eval_integer_infix_expression(operator: String, left: i64, right: i64) -> EvaluationResult {
+    let result = match operator.as_str() {
         "+" => Object::Integer(left + right),
         "-" => Object::Integer(left - right),
         "*" => Object::Integer(left * right),
@@ -110,19 +120,21 @@ fn eval_integer_infix_expression(operator: String, left: i64, right: i64) -> Obj
         ">" => boolean_object(left > right),
         "==" => boolean_object(left == right),
         "!=" => boolean_object(left != right),
-        _ => NULL,
-    }
+        _ => { return Err(EvaluationError(format!("unknown operator: {} {} {}", left, operator, right))); }
+    };
+
+    Ok(result)
 }
 
-fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Box<Stmt>>) -> Object {
-    let condition = eval_expression(condition);
+fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Box<Stmt>>) -> EvaluationResult {
+    let condition = eval_expression(condition)?;
 
     if is_truthy(condition) {
         eval_statement(consequence)
     } else if let Some(alt) = alternative {
         eval_statement(*alt)
     } else {
-        NULL
+        Ok(NULL)
     }
 }
 
