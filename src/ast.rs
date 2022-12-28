@@ -8,6 +8,7 @@ pub enum Stmt {
     Let(Token, Identifier, Expr),
     Return(Expr),
     Expr(Expr),
+    Block(Vec<Stmt>),
 }
 
 #[derive(Debug)]
@@ -18,6 +19,9 @@ pub enum Expr {
     Prefix(String, Box<Expr>),
     Infix(Box<Expr>, String, Box<Expr>),
     Boolean(bool),
+    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
+    Functionliteral(Vec<Expr>, Box<Stmt>),
+    Call(Box<Expr>, Vec<Expr>),
 }
 
 #[derive(Debug)]

@@ -28,6 +28,7 @@ impl Precedence {
             TokenType::Minus => Self::Sum,
             TokenType::Slash => Precedence::Product,
             TokenType::Asterisk => Precedence::Product,
+            TokenType::LParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }
@@ -129,6 +130,21 @@ impl<'src> Parser<'src> {
         Ok(Stmt::Expr(expression))
     }
 
+    fn parse_block_statement(&mut self) -> Result<Stmt, ParserError> {
+        let mut statements = Vec::new();
+        self.next_token();
+
+        while !self.current_token_is(&TokenType::RBrace) && !self.current_token_is(&TokenType::EOF)
+        {
+            let statement = self.parse_statement()?;
+
+            statements.push(statement);
+            self.next_token();
+        }
+
+        Ok(Stmt::Block(statements))
+    }
+
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr, ParserError> {
         let mut left = self.parse_prefix_expression()?;
 
@@ -149,6 +165,8 @@ impl<'src> Parser<'src> {
             TokenType::True => self.parse_boolean(),
             TokenType::False => self.parse_boolean(),
             TokenType::LParen => self.parse_grouped_expression(),
+            TokenType::If => self.parse_if_expression(),
+            TokenType::Function => self.parse_function_literal(),
             _ => Err(ParserError(format!(
                 "no prefix function for expression: {:?}",
                 self.current_token
@@ -166,6 +184,7 @@ impl<'src> Parser<'src> {
             TokenType::NotEq => self.parse_infix_expr(left),
             TokenType::LessThan => self.parse_infix_expr(left),
             TokenType::GreaterThan => self.parse_infix_expr(left),
+            TokenType::LParen => self.parse_call_expr(left),
             _ => Ok(left),
         }
     }
@@ -212,6 +231,96 @@ impl<'src> Parser<'src> {
         self.expect_peek(TokenType::RParen)?;
 
         expr
+    }
+
+    fn parse_if_expression(&mut self) -> Result<Expr, ParserError> {
+        self.expect_peek(TokenType::LParen)?;
+        self.next_token();
+        let condition = self.parse_expression(Precedence::Lowest)?;
+        self.expect_peek(TokenType::RParen)?;
+        self.expect_peek(TokenType::LBrace)?;
+        let consequence = self.parse_block_statement()?;
+
+        let alternative = if self.peek_token_is(&TokenType::Else) {
+            self.next_token();
+            self.expect_peek(TokenType::LBrace)?;
+            let block = self.parse_block_statement()?;
+
+            Some(Box::new(block))
+        } else {
+            None
+        };
+
+        Ok(Expr::If(
+            Box::new(condition),
+            Box::new(consequence),
+            alternative,
+        ))
+    }
+
+    fn parse_function_literal(&mut self) -> Result<Expr, ParserError> {
+        self.expect_peek(TokenType::LParen)?;
+        let parameters = self.parse_function_parameters()?;
+        self.expect_peek(TokenType::LBrace)?;
+        let body = self.parse_block_statement()?;
+
+        Ok(Expr::Functionliteral(parameters, Box::new(body)))
+    }
+
+    fn parse_function_parameters(&mut self) -> Result<Vec<Expr>, ParserError> {
+        let mut identifiers = Vec::new();
+
+        if self.peek_token_is(&TokenType::RParen) {
+            self.next_token();
+            return Ok(identifiers);
+        }
+
+        self.next_token();
+        let identifier = Expr::Identifier(self.current_token.literal.clone());
+        identifiers.push(identifier);
+
+        while self.peek_token_is(&TokenType::Comma) {
+            self.next_token();
+            self.next_token();
+
+            let identifier = Expr::Identifier(self.current_token.literal.clone());
+            identifiers.push(identifier);
+        }
+
+        self.expect_peek(TokenType::RParen)?;
+
+        Ok(identifiers)
+    }
+
+    fn parse_call_expr(&mut self, function: Expr) -> Result<Expr, ParserError> {
+        let arguments = self.parse_call_arguments()?;
+
+        Ok(Expr::Call(Box::new(function), arguments))
+    }
+
+    fn parse_call_arguments(&mut self) -> Result<Vec<Expr>, ParserError> {
+        let mut arguments = Vec::new();
+
+        if self.peek_token_is(&TokenType::RParen) {
+            self.next_token();
+            return Ok(arguments);
+        }
+
+        self.next_token();
+        let argument = self.parse_expression(Precedence::Lowest)?;
+        arguments.push(argument);
+
+        while self.peek_token_is(&TokenType::Comma) {
+            self.next_token();
+            self.next_token();
+
+            let argument = self.parse_expression(Precedence::Lowest)?;
+            arguments.push(argument);
+        }
+
+        self.expect_peek(TokenType::RParen)?;
+
+        Ok(arguments)
     }
 
     fn current_token_is(&self, ttype: &TokenType) -> bool {
