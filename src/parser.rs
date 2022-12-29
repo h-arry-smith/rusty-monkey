@@ -269,7 +269,7 @@ impl<'src> Parser<'src> {
         Ok(Expr::Functionliteral(parameters, Box::new(body)))
     }
 
-    fn parse_function_parameters(&mut self) -> Result<Vec<Expr>, ParserError> {
+    fn parse_function_parameters(&mut self) -> Result<Vec<Identifier>, ParserError> {
         let mut identifiers = Vec::new();
 
         if self.peek_token_is(&TokenType::RParen) {
@@ -278,14 +278,14 @@ impl<'src> Parser<'src> {
         }
 
         self.next_token();
-        let identifier = Expr::Identifier(self.current_token.literal.clone());
+        let identifier = Identifier(self.current_token.literal.clone());
         identifiers.push(identifier);
 
         while self.peek_token_is(&TokenType::Comma) {
             self.next_token();
             self.next_token();
 
-            let identifier = Expr::Identifier(self.current_token.literal.clone());
+            let identifier = Identifier(self.current_token.literal.clone());
             identifiers.push(identifier);
         }
 

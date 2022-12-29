@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, cell::RefCell, rc::Rc};
 
 use crate::{
     ast::*,
@@ -69,9 +69,24 @@ fn eval_expression(expr: Expr, env: &mut Environment) -> EvaluationResult {
         }
         Expr::Boolean(boolean) => Ok(boolean_object(boolean)),
         Expr::If(condition, consequence, alternative) => eval_if_expression(*condition, *consequence, alternative, env),
-        Expr::Functionliteral(_, _) => todo!(),
-        Expr::Call(_, _) => todo!(),
+        Expr::Functionliteral(params, body) => Ok(Object::Function(params, *body, Box::new(env.clone()))),
+        Expr::Call(function, arguments) => {
+            let function = eval_expression(*function, env)?;
+            let args = eval_expressions(arguments, env)?;
+
+            apply_function(function, args)
+        },
     }
+}
+
+fn eval_expressions(exprs: Vec<Expr>, env: &mut Environment) -> Result<Vec<Object>, EvaluationError> {
+    let mut result = Vec::new();
+    for expr in exprs {
+        let evaluated = eval_expression(expr, env)?;
+        result.push(evaluated);
+    }
+
+    Ok(result)
 }
 
 fn eval_prefix_expression(operator: String, right: Object) -> EvaluationResult {
@@ -147,6 +162,35 @@ fn eval_identifier(literal: &str, env: &mut Environment) -> EvaluationResult {
         Some(object) => Ok(object),
         None => Err(EvaluationError(format!("identifier not found: {}", literal))),
     }
+}
+
+fn apply_function(function: Object, arguments: Vec<Object>) -> EvaluationResult {
+    match function {
+        Object::Function(parameters, body, environment) => {
+            let mut extended_env = extend_function_environment(*environment, parameters, arguments);
+            let evaluated = eval_block_statement(body, &mut extended_env)?;
+
+            match evaluated {
+                Object::Return(value) => Ok(*value),
+                _ => Ok(evaluated)
+            }
+        },
+        _ => Err(EvaluationError(format!("not a function: {}", function)))
+    }
+}
+
+fn extend_function_environment(
+    outer_environment: Environment, 
+    parameters: Vec<Identifier>, 
+    arguments: Vec<Object>
+) -> Environment {
+    let mut extended_env = Environment::new_enclosing(Box::new(outer_environment));
+
+    for (i, parameter) in parameters.iter().enumerate() {
+        extended_env.set(parameter.0.clone(), arguments[i].clone());
+    }
+
+    extended_env
 }
 
 fn boolean_object(boolean: bool) -> Object {

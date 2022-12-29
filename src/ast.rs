@@ -1,7 +1,7 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier(pub String);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Stmt {
     Let(Identifier, Expr),
     Return(Expr),
@@ -9,7 +9,7 @@ pub enum Stmt {
     Block(Vec<Stmt>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expr {
     Identifier(String),
     IntegerLiteral(i64),
@@ -17,7 +17,7 @@ pub enum Expr {
     Infix(Box<Expr>, String, Box<Expr>),
     Boolean(bool),
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
-    Functionliteral(Vec<Expr>, Box<Stmt>),
+    Functionliteral(Vec<Identifier>, Box<Stmt>),
     Call(Box<Expr>, Vec<Expr>),
 }
 
