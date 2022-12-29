@@ -1,10 +1,10 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
 pub const NULL: Object = Object::Null;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Object {
     Integer(i64),
     Boolean(bool),
@@ -20,5 +20,31 @@ impl Display for Object {
             Object::Null => write!(f, "null"),
             Object::Return(object) => write!(f, "{}", object),
         }
+    }
+}
+
+pub struct Environment {
+    store: HashMap<String, Object>,
+}
+
+impl Environment {
+    pub fn new() -> Self {
+        Self {
+            store: HashMap::new(),
+        }
+    }
+
+    pub fn set(&mut self, identifier_literal: String, object: Object) -> Option<Object> {
+        self.store.insert(identifier_literal, object)
+    }
+
+    pub fn get(&self, identifier_literal: &str) -> Option<Object> {
+        self.store.get(identifier_literal).cloned()
+    }
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
     }
 }

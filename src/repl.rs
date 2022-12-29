@@ -1,11 +1,12 @@
 use std::io::{self, Write};
 
-use crate::{evaluator, lexer::Lexer, parser::Parser};
+use crate::{evaluator, lexer::Lexer, object::Environment, parser::Parser};
 
 const PROMPT: &str = ">> ";
 
 pub fn start() {
     let mut input = String::new();
+    let mut environment = Environment::new();
 
     loop {
         print!("{}", PROMPT);
@@ -27,7 +28,7 @@ pub fn start() {
             continue;
         }
 
-        match evaluator::eval_program(program) {
+        match evaluator::eval_program(program, &mut environment) {
             Ok(result) => println!("{}", result),
             Err(err) => println!("error: {}", err),
         };

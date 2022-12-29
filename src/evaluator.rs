@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     ast::*,
-    object::{Object, FALSE, NULL, TRUE},
+    object::{Object, FALSE, NULL, TRUE, Environment},
 };
 
 pub type EvaluationResult = Result<Object, EvaluationError>;
@@ -13,35 +13,39 @@ impl Display for EvaluationError {
     }
 }
 
-pub fn eval_program(program: Program) -> EvaluationResult {
+pub fn eval_program(program: Program, env: &mut Environment) -> EvaluationResult {
     let mut result = NULL;
 
     for statement in program.statements {
-        result = eval_statement(statement)?;
+        result = eval_statement(statement, env)?;
 
         if let Object::Return(value) = result { return Ok(*value); }
     }
 
     Ok(result)
 }
-fn eval_statement(statement: Stmt) -> EvaluationResult {
+fn eval_statement(statement: Stmt, env: &mut Environment) -> EvaluationResult {
     match statement {
-        Stmt::Let(_, _) => todo!(),
+        Stmt::Let(identifier, expr) => {
+            let value = eval_expression(expr, env)?;
+            env.set(identifier.0, value.clone());
+            Ok(value)
+        },
         Stmt::Return(expr) => {
-            let value = eval_expression(expr)?;
+            let value = eval_expression(expr, env)?;
             Ok(Object::Return(Box::new(value)))
         },
-        Stmt::Expr(expr) => eval_expression(expr),
-        Stmt::Block(_) => eval_block_statement(statement),
+        Stmt::Expr(expr) => eval_expression(expr, env),
+        Stmt::Block(_) => eval_block_statement(statement, env),
     }
 }
 
-fn eval_block_statement(block: Stmt) -> EvaluationResult {
+fn eval_block_statement(block: Stmt, env: &mut Environment) -> EvaluationResult {
     let mut result = NULL;
 
     if let Stmt::Block(statements) = block {
         for statement in statements {
-            result = eval_statement(statement)?;
+            result = eval_statement(statement, env)?;
 
             if let Object::Return(_) = result { return Ok(result); }
         }
@@ -50,21 +54,21 @@ fn eval_block_statement(block: Stmt) -> EvaluationResult {
     Ok(result)
 }
 
-fn eval_expression(expr: Expr) -> EvaluationResult {
+fn eval_expression(expr: Expr, env: &mut Environment) -> EvaluationResult {
     match expr {
-        Expr::Identifier(_) => todo!(),
+        Expr::Identifier(literal) => eval_identifier(&literal, env),
         Expr::IntegerLiteral(integer) => Ok(Object::Integer(integer)),
         Expr::Prefix(operator, right) => {
-            let right = eval_expression(*right)?;
+            let right = eval_expression(*right, env)?;
             eval_prefix_expression(operator, right)
         }
         Expr::Infix(left, operator, right) => {
-            let left = eval_expression(*left)?;
-            let right = eval_expression(*right)?;
+            let left = eval_expression(*left, env)?;
+            let right = eval_expression(*right, env)?;
             eval_infix_expression(operator, left, right)
         }
         Expr::Boolean(boolean) => Ok(boolean_object(boolean)),
-        Expr::If(condition, consequence, alternative) => eval_if_expression(*condition, *consequence, alternative),
+        Expr::If(condition, consequence, alternative) => eval_if_expression(*condition, *consequence, alternative, env),
         Expr::Functionliteral(_, _) => todo!(),
         Expr::Call(_, _) => todo!(),
     }
@@ -126,15 +130,22 @@ fn eval_integer_infix_expression(operator: String, left: i64, right: i64) -> Eva
     Ok(result)
 }
 
-fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Box<Stmt>>) -> EvaluationResult {
-    let condition = eval_expression(condition)?;
+fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Box<Stmt>>, env: &mut Environment) -> EvaluationResult {
+    let condition = eval_expression(condition, env)?;
 
     if is_truthy(condition) {
-        eval_statement(consequence)
+        eval_statement(consequence, env)
     } else if let Some(alt) = alternative {
-        eval_statement(*alt)
+        eval_statement(*alt, env)
     } else {
         Ok(NULL)
+    }
+}
+
+fn eval_identifier(literal: &str, env: &mut Environment) -> EvaluationResult {
+    match env.get(literal) {
+        Some(object) => Ok(object),
+        None => Err(EvaluationError(format!("identifier not found: {}", literal))),
     }
 }
 
