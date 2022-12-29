@@ -1,8 +1,8 @@
-use std::{fmt::Display, cell::RefCell, rc::Rc};
+use std::fmt::Display;
 
 use crate::{
     ast::*,
-    object::{Object, FALSE, NULL, TRUE, Environment},
+    object::{Environment, Object, FALSE, NULL, TRUE},
 };
 
 pub type EvaluationResult = Result<Object, EvaluationError>;
@@ -19,7 +19,9 @@ pub fn eval_program(program: Program, env: &mut Environment) -> EvaluationResult
     for statement in program.statements {
         result = eval_statement(statement, env)?;
 
-        if let Object::Return(value) = result { return Ok(*value); }
+        if let Object::Return(value) = result {
+            return Ok(*value);
+        }
     }
 
     Ok(result)
@@ -30,11 +32,11 @@ fn eval_statement(statement: Stmt, env: &mut Environment) -> EvaluationResult {
             let value = eval_expression(expr, env)?;
             env.set(identifier.0, value.clone());
             Ok(value)
-        },
+        }
         Stmt::Return(expr) => {
             let value = eval_expression(expr, env)?;
             Ok(Object::Return(Box::new(value)))
-        },
+        }
         Stmt::Expr(expr) => eval_expression(expr, env),
         Stmt::Block(_) => eval_block_statement(statement, env),
     }
@@ -47,7 +49,9 @@ fn eval_block_statement(block: Stmt, env: &mut Environment) -> EvaluationResult 
         for statement in statements {
             result = eval_statement(statement, env)?;
 
-            if let Object::Return(_) = result { return Ok(result); }
+            if let Object::Return(_) = result {
+                return Ok(result);
+            }
         }
     }
 
@@ -68,18 +72,26 @@ fn eval_expression(expr: Expr, env: &mut Environment) -> EvaluationResult {
             eval_infix_expression(operator, left, right)
         }
         Expr::Boolean(boolean) => Ok(boolean_object(boolean)),
-        Expr::If(condition, consequence, alternative) => eval_if_expression(*condition, *consequence, alternative, env),
-        Expr::Functionliteral(params, body) => Ok(Object::Function(params, *body, Box::new(env.clone()))),
+        Expr::If(condition, consequence, alternative) => {
+            eval_if_expression(*condition, *consequence, alternative, env)
+        }
+        Expr::Functionliteral(params, body) => {
+            Ok(Object::Function(params, *body, Box::new(env.clone())))
+        }
         Expr::Call(function, arguments) => {
             let function = eval_expression(*function, env)?;
             let args = eval_expressions(arguments, env)?;
 
             apply_function(function, args)
-        },
+        }
+        Expr::StringLiteral(string) => Ok(Object::String(string)),
     }
 }
 
-fn eval_expressions(exprs: Vec<Expr>, env: &mut Environment) -> Result<Vec<Object>, EvaluationError> {
+fn eval_expressions(
+    exprs: Vec<Expr>,
+    env: &mut Environment,
+) -> Result<Vec<Object>, EvaluationError> {
     let mut result = Vec::new();
     for expr in exprs {
         let evaluated = eval_expression(expr, env)?;
@@ -93,7 +105,10 @@ fn eval_prefix_expression(operator: String, right: Object) -> EvaluationResult {
     match operator.as_str() {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right),
-        _ => Err(EvaluationError(format!("unknown operator: {} {}", operator, right))),
+        _ => Err(EvaluationError(format!(
+            "unknown operator: {} {}",
+            operator, right
+        ))),
     }
 }
 
@@ -117,14 +132,25 @@ fn eval_infix_expression(operator: String, left: Object, right: Object) -> Evalu
     match left {
         Object::Integer(left) => match right {
             Object::Integer(right) => eval_integer_infix_expression(operator, left, right),
-            _ => Err(EvaluationError(format!("type mismatch {} {} {}", left, operator, right)))
-        }
-        _ => {
-            match operator.as_str() {
-                "==" => Ok(boolean_object(left == right)),
-                "!=" => Ok(boolean_object(left != right)),
-                _ => Err(EvaluationError(format!("unknown operator: {} {} {}", left, operator, right)))
-            }
+            _ => Err(EvaluationError(format!(
+                "type mismatch {} {} {}",
+                left, operator, right
+            ))),
+        },
+        Object::String(left) => match right {
+            Object::String(right) => eval_string_infix_expression(operator, left, right),
+            _ => Err(EvaluationError(format!(
+                "type mismatch {} {} {}",
+                left, operator, right
+            ))),
+        },
+        _ => match operator.as_str() {
+            "==" => Ok(boolean_object(left == right)),
+            "!=" => Ok(boolean_object(left != right)),
+            _ => Err(EvaluationError(format!(
+                "unknown operator: {} {} {}",
+                left, operator, right
+            ))),
         },
     }
 }
@@ -139,13 +165,37 @@ fn eval_integer_infix_expression(operator: String, left: i64, right: i64) -> Eva
         ">" => boolean_object(left > right),
         "==" => boolean_object(left == right),
         "!=" => boolean_object(left != right),
-        _ => { return Err(EvaluationError(format!("unknown operator: {} {} {}", left, operator, right))); }
+        _ => {
+            return Err(EvaluationError(format!(
+                "unknown operator: {} {} {}",
+                left, operator, right
+            )));
+        }
     };
 
     Ok(result)
 }
 
-fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Box<Stmt>>, env: &mut Environment) -> EvaluationResult {
+fn eval_string_infix_expression(operator: String, left: String, right: String) -> EvaluationResult {
+    let result = match operator.as_str() {
+        "+" => Object::String(format!("{}{}", left, right)),
+        _ => {
+            return Err(EvaluationError(format!(
+                "unknown operator: {} {} {}",
+                left, operator, right
+            )));
+        }
+    };
+
+    Ok(result)
+}
+
+fn eval_if_expression(
+    condition: Expr,
+    consequence: Stmt,
+    alternative: Option<Box<Stmt>>,
+    env: &mut Environment,
+) -> EvaluationResult {
     let condition = eval_expression(condition, env)?;
 
     if is_truthy(condition) {
@@ -160,7 +210,10 @@ fn eval_if_expression(condition: Expr, consequence: Stmt, alternative: Option<Bo
 fn eval_identifier(literal: &str, env: &mut Environment) -> EvaluationResult {
     match env.get(literal) {
         Some(object) => Ok(object),
-        None => Err(EvaluationError(format!("identifier not found: {}", literal))),
+        None => Err(EvaluationError(format!(
+            "identifier not found: {}",
+            literal
+        ))),
     }
 }
 
@@ -172,17 +225,17 @@ fn apply_function(function: Object, arguments: Vec<Object>) -> EvaluationResult 
 
             match evaluated {
                 Object::Return(value) => Ok(*value),
-                _ => Ok(evaluated)
+                _ => Ok(evaluated),
             }
-        },
-        _ => Err(EvaluationError(format!("not a function: {}", function)))
+        }
+        _ => Err(EvaluationError(format!("not a function: {}", function))),
     }
 }
 
 fn extend_function_environment(
-    outer_environment: Environment, 
-    parameters: Vec<Identifier>, 
-    arguments: Vec<Object>
+    outer_environment: Environment,
+    parameters: Vec<Identifier>,
+    arguments: Vec<Object>,
 ) -> Environment {
     let mut extended_env = Environment::new_enclosing(Box::new(outer_environment));
 
@@ -205,6 +258,6 @@ fn is_truthy(object: Object) -> bool {
     match object {
         Object::Boolean(boolean) => boolean,
         Object::Null => false,
-        _ => true
+        _ => true,
     }
 }

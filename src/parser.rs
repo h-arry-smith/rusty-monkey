@@ -169,6 +169,7 @@ impl<'src> Parser<'src> {
             TokenType::LParen => self.parse_grouped_expression(),
             TokenType::If => self.parse_if_expression(),
             TokenType::Function => self.parse_function_literal(),
+            TokenType::String => self.parse_string_literal(),
             _ => Err(ParserError(format!(
                 "no prefix function for expression: {:?}",
                 self.current_token
@@ -292,6 +293,10 @@ impl<'src> Parser<'src> {
         self.expect_peek(TokenType::RParen)?;
 
         Ok(identifiers)
+    }
+
+    fn parse_string_literal(&mut self) -> Result<Expr, ParserError> {
+        Ok(Expr::StringLiteral(self.current_token.literal.clone()))
     }
 
     fn parse_call_expr(&mut self, function: Expr) -> Result<Expr, ParserError> {

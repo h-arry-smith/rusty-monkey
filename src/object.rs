@@ -9,6 +9,7 @@ pub const NULL: Object = Object::Null;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Object {
     Integer(i64),
+    String(String),
     Boolean(bool),
     Null,
     Return(Box<Object>),
@@ -23,6 +24,7 @@ impl Display for Object {
             Object::Null => write!(f, "null"),
             Object::Return(object) => write!(f, "{}", object),
             Object::Function(parameters, _, _) => write!(f, "<fn/{}>", parameters.len()),
+            Object::String(string) => write!(f, "{}", string),
         }
     }
 }

@@ -68,6 +68,10 @@ impl<'src> Lexer<'src> {
             b'-' => new_token(TokenType::Minus, "-"),
             b'*' => new_token(TokenType::Asterisk, "*"),
             b'/' => new_token(TokenType::Slash, "/"),
+            b'"' => {
+                let literal = self.read_string();
+                new_token(TokenType::String, &literal)
+            }
             0 => new_token(TokenType::EOF, ""),
             _ => {
                 if is_letter(&self.ch) {
@@ -108,6 +112,19 @@ impl<'src> Lexer<'src> {
         let start = self.position;
         while self.ch.is_ascii_digit() {
             self.read_char();
+        }
+
+        self.string_from_input(start)
+    }
+
+    fn read_string(&mut self) -> String {
+        let start = self.position + 1;
+        loop {
+            self.read_char();
+
+            if self.ch == b'"' || self.ch == 0 {
+                break;
+            }
         }
 
         self.string_from_input(start)

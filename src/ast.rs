@@ -19,6 +19,7 @@ pub enum Expr {
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     Functionliteral(Vec<Identifier>, Box<Stmt>),
     Call(Box<Expr>, Vec<Expr>),
+    StringLiteral(String),
 }
 
 #[derive(Debug)]
