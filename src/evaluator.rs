@@ -2,11 +2,12 @@ use std::fmt::Display;
 
 use crate::{
     ast::*,
+    builtin::build_builtins,
     object::{Environment, Object, FALSE, NULL, TRUE},
 };
 
 pub type EvaluationResult = Result<Object, EvaluationError>;
-pub struct EvaluationError(String);
+pub struct EvaluationError(pub String);
 impl Display for EvaluationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
@@ -208,13 +209,20 @@ fn eval_if_expression(
 }
 
 fn eval_identifier(literal: &str, env: &mut Environment) -> EvaluationResult {
-    match env.get(literal) {
-        Some(object) => Ok(object),
-        None => Err(EvaluationError(format!(
-            "identifier not found: {}",
-            literal
-        ))),
+    if let Some(object) = env.get(literal) {
+        return Ok(object);
     }
+
+    let builtins = build_builtins();
+
+    if let Some(builtin) = builtins.get(literal) {
+        return Ok(builtin.clone());
+    }
+
+    return Err(EvaluationError(format!(
+        "identifier not found: {}",
+        literal
+    )));
 }
 
 fn apply_function(function: Object, arguments: Vec<Object>) -> EvaluationResult {
@@ -228,6 +236,7 @@ fn apply_function(function: Object, arguments: Vec<Object>) -> EvaluationResult 
                 _ => Ok(evaluated),
             }
         }
+        Object::Builtin(builtin_fn) => builtin_fn(arguments),
         _ => Err(EvaluationError(format!("not a function: {}", function))),
     }
 }

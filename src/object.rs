@@ -1,10 +1,14 @@
+use std::fmt::Debug;
 use std::{collections::HashMap, fmt::Display};
 
 use crate::ast::{Identifier, Stmt};
+use crate::evaluator::EvaluationResult;
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
 pub const NULL: Object = Object::Null;
+
+pub type BuiltinFn = fn(Vec<Object>) -> EvaluationResult;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Object {
@@ -14,6 +18,7 @@ pub enum Object {
     Null,
     Return(Box<Object>),
     Function(Vec<Identifier>, Stmt, Box<Environment>),
+    Builtin(BuiltinFn),
 }
 
 impl Display for Object {
@@ -25,6 +30,7 @@ impl Display for Object {
             Object::Return(object) => write!(f, "{}", object),
             Object::Function(parameters, _, _) => write!(f, "<fn/{}>", parameters.len()),
             Object::String(string) => write!(f, "{}", string),
+            Object::Builtin(function) => write!(f, "<builtin {:?}>", function),
         }
     }
 }
