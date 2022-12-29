@@ -10,3 +10,7 @@ A development of the Monkey Programming Language from the book
  really rather shouldn't. For example creating an inner environment clones the 
 outer environment, when creating a function closure. This is obviously no-bueno.
 - I did not copy out all the test code into Rust.
+
+# Prior Art & Inspiration
+- https://github.com/wadackel/rs-monkey-lang
+- https://github.com/Rydgel/monkey-rust
